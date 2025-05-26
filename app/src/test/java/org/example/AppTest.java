@@ -38,8 +38,6 @@ public class AppTest {
         driver = new ChromeDriver(options);
         
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
     }
     
     @Test
@@ -51,9 +49,10 @@ public class AppTest {
         
         login(EMAIL, PASSWORD);
         System.out.println("Logged in successfully");
-        
-        findProduct("to kill a mockingbird");
-        System.out.println("Found product");
+
+        String searchTerm = "harimau harimau";
+        findProduct(searchTerm);
+        System.out.println("Found product: " + searchTerm);
         
         String productName = addToCart();
         System.out.println("Added product to cart: " + productName);
@@ -79,12 +78,13 @@ public class AppTest {
             emailField.clear();
             emailField.sendKeys(email);
             
-            WebElement passwordField = driver.findElement(By.name("password"));
+            WebElement passwordField = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                    By.name("password")));
             passwordField.clear();
             passwordField.sendKeys(password);
-            
-            WebElement loginButton = driver.findElement(
-                    By.cssSelector(".action.login, .login-button, [type='submit']"));
+
+            WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("input[type='submit'].buton#button-login")));
             loginButton.click();
 
         } catch (Exception e) {
@@ -109,8 +109,8 @@ public class AppTest {
             System.out.println("Preloader has disappeared.");
 
             // Click search button
-            WebElement searchButton = driver.findElement(
-                    By.cssSelector("button.btnn[type='submit']"));
+            WebElement searchButton = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("button.btnn[type='submit']")));
             searchButton.click();
             
             // Wait for search results
@@ -184,12 +184,20 @@ public class AppTest {
 
             // Check if product is in cart
             try {
-                WebElement cartItem = driver.findElement(
-                        By.xpath("//*[contains(@class,'cart-item') or contains(@class,'cart-product')]" +
-                                "[contains(.,'" + productName + "')]"));
-                return cartItem.isDisplayed();
+                WebElement cartItem = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                        By.xpath("//*[contains(@class,'product-name')]" +
+                                "[contains(.,'" + productName + "')]")));
+
+                WebElement quantityInput = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector(".input-number.text-center")));
+                String quantityValue = quantityInput.getAttribute("value");
+                assert quantityValue.equals("1") : "Expected quantity to be 1 but found " + quantityValue;
+
+                WebElement subtotal = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                        By.cssSelector("#sub_total")));
+
+                return cartItem.isDisplayed() && subtotal.isDisplayed();
             } catch (Exception e) {
-                // Product not found in cart
                 return false;
             }
             
